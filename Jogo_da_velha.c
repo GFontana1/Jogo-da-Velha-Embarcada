@@ -12,7 +12,7 @@
 #define I2C_SDA 14
 #define I2C_SCL 15
 #define endereco 0x3C
-#define NUM_RESULTS 3
+#define NUM_PLAYERS 4
 #define NUM_PIXELS 25
 #define WS2812_PIN 7
 #define IS_RGBW 0
@@ -21,6 +21,7 @@
 #define BLUE_LED 12
 #define GREEN_LED 11
 #define RED_LED 13
+#define BUZZER_PIN 21 // Pino do buzzer
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -72,10 +73,11 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 // Matriz de leds
-const bool matriz_led[NUM_RESULTS][NUM_PIXELS] = {
+const bool matriz_led[NUM_PLAYERS][NUM_PIXELS] = {
     {1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,0,0,0,1}, // X
     {0,1,1,1,0, 1,0,0,0,1, 1,0,0,0,1, 1,0,0,0,1, 0,1,1,1,0}, // O
     {0,0,1,0,0, 0,1,0,1,0, 1,0,0,0,1, 1,0,0,0,1, 1,0,0,0,1}, // V
+    {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0}  // Matriz vazia
 };
 
 // Função para desenhar um símbolo na matriz
@@ -87,6 +89,19 @@ void show_symbol_leds(int symbol, uint32_t color) {
     }
     sleep_ms(10);
 } 
+
+// Função para tocar um som no buzzer
+void play_sound(int frequency, int duration_ms) {
+    int period_us = 1000000 / frequency; // Período em microssegundos
+    int half_period_us = period_us / 2;
+
+    for (int i = 0; i < (duration_ms * 1000) / period_us; i++) {
+        gpio_put(BUZZER_PIN, 1); // Liga o buzzer
+        sleep_us(half_period_us);
+        gpio_put(BUZZER_PIN, 0); // Desliga o buzzer
+        sleep_us(half_period_us);
+    }
+}
 
 char check_winner() {
     // Verifica linhas
@@ -161,6 +176,9 @@ void reset_game() {
 
     // Redesenha o tabuleiro
     draw_board();
+
+    // Informa que o jogo foi reiniciado
+    printf("Jogo reiniciado! Bom jogo!\n");
 }
 
 void update_game() {
@@ -190,13 +208,15 @@ void update_game() {
             if (winner != ' ') {
                 game_over = true;
                 printf("Jogador %c venceu!\n", winner);
-                printf("Pressione A 2 vezes para jogar novamente!\n");
+                printf("Pressione o botão A duas vezes para reiniciar o jogo.\n"); // Instrução para reiniciar
                 if (winner == 'X') {
                     gpio_put(BLUE_LED, true); // Acende o LED azul para indicar vitória do X
                     show_symbol_leds(0, urgb_u32(0, 0, 200)); // Exibe "X" na matriz de LEDs (azul)
+                    play_sound(1000, 600); // Toca um som agudo para vitória do X
                 } else if (winner == 'O') {
                     gpio_put(GREEN_LED, true); // Acende o LED verde para indicar vitória do O
                     show_symbol_leds(1, urgb_u32(0, 200, 0)); // Exibe "O" na matriz de LEDs (verde)
+                    play_sound(700, 600); // Toca um som grave para vitória do O
                 }
                 return;
             }
@@ -205,9 +225,10 @@ void update_game() {
             if (check_draw()) {
                 game_over = true;
                 printf("Deu velha!\n");
-                printf("Pressione A 2 vezes para jogar novamente!\n");
+                printf("Pressione o botão A duas vezes para reiniciar o jogo.\n"); // Instrução para reiniciar
                 gpio_put(RED_LED, true); // Acende o LED vermelho para indicar empate
                 show_symbol_leds(2, urgb_u32(200, 0, 0)); // Exibe "V" na matriz de LEDs (vermelho)
+                play_sound(500, 600); // Toca um som intermediário para empate
                 return;
             }
 
@@ -220,6 +241,7 @@ void update_game() {
         } else {
             gpio_put(RED_LED, true);
             printf("Posição já em uso, selecione outra.\n");
+            play_sound(150, 300);
             sleep_ms(700);
             gpio_put(RED_LED, false);
         }
@@ -244,6 +266,11 @@ void init_leds() {
     gpio_set_dir(RED_LED, GPIO_OUT);
 }
 
+void init_buzzer() {
+    gpio_init(BUZZER_PIN);
+    gpio_set_dir(BUZZER_PIN, GPIO_OUT);
+}
+
 int main() {
     PIO pio = pio0;
     int sm = 0;
@@ -252,6 +279,7 @@ int main() {
     ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW); // Inicializa a máquina de estados
     stdio_init_all();
     init_leds();
+    init_buzzer(); // Inicializa o buzzer
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
