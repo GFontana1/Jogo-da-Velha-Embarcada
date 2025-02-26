@@ -28,37 +28,37 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(Tarefa-Display C CXX ASM)
+project(Jogo_da_velha C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(Tarefa-Display Tarefa-Display.c inc/ssd1306.c)
+add_executable(Jogo_da_velha Jogo_da_velha.c inc/ssd1306.c)
 
-pico_set_program_name(Tarefa-Display "Tarefa-Display")
-pico_set_program_version(Tarefa-Display "0.1")
+pico_set_program_name(Jogo_da_velha "Jogo_da_velha")
+pico_set_program_version(Jogo_da_velha "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(Tarefa-Display 1)
-pico_enable_stdio_usb(Tarefa-Display 1)
+pico_enable_stdio_uart(Jogo_da_velha 1)
+pico_enable_stdio_usb(Jogo_da_velha 1)
 
-pico_generate_pio_header(Tarefa-Display ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/generated)
+pico_generate_pio_header(Jogo_da_velha ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/generated)
 
 # Add the standard library to the build
-target_link_libraries(Tarefa-Display
+target_link_libraries(Jogo_da_velha
         pico_stdlib hardware_pio)
 
 # Add the standard include files to the build
-target_include_directories(Tarefa-Display PRIVATE
+target_include_directories(Jogo_da_velha PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # Add any user requested libraries
-target_link_libraries(Tarefa-Display 
+target_link_libraries(Jogo_da_velha 
         hardware_i2c
         )
 
-pico_add_extra_outputs(Tarefa-Display)
+pico_add_extra_outputs(Jogo_da_velha)
 

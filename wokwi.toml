@@ -1,4 +1,4 @@
 [wokwi]
 version = 1
-firmware = 'build/Tarefa-Display.uf2'
-elf = 'build/Tarefa-Display.elf'
+firmware = 'build/Jogo_da_velha.uf2'
+elf = 'build/Jogo_da_velha.elf'
