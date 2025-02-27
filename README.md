@@ -1,4 +1,4 @@
-# Jogo-da-Velha-Embarcado
+# Jogo-da-Velha-Embarcada
 Projeto final do Embarcatech.
 
 ## Descrição do projeto
