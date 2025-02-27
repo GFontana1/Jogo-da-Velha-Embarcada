@@ -1,3 +1,4 @@
+// Bibliotecas
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
@@ -8,6 +9,7 @@
 #include "ws2812.pio.h"
 #include "hardware/timer.h"
 
+// Definições de constantes e pinos
 #define I2C_PORT i2c1
 #define I2C_SDA 14
 #define I2C_SCL 15
@@ -21,25 +23,27 @@
 #define BLUE_LED 12
 #define GREEN_LED 11
 #define RED_LED 13
-#define BUZZER_PIN 21 // Pino do buzzer
+#define BUZZER_PIN 21
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
+// Variáveis globais para controle de estado
 static volatile uint32_t LAST_TIME_A = 0;
 static volatile uint32_t LAST_TIME_B = 0;
 static volatile bool button_a_pressed = false;
 static volatile bool button_b_pressed = false;
 static volatile int button_a_press_count = 0; // Contador de pressões do botão A
 
-ssd1306_t ssd;
-char board[3][3] = {{' ', ' ', ' '}, {' ', ' ', ' '}, {' ', ' ', ' '}};
-int cursor_x = 0, cursor_y = 0; // cursor_x controla a coluna, cursor_y controla a linha
-char current_player = 'X';
-bool game_over = false; // Variável para controlar se o jogo terminou
+ssd1306_t ssd; // Estrutura para o display OLED
+char board[3][3] = {{' ', ' ', ' '}, {' ', ' ', ' '}, {' ', ' ', ' '}}; // Matriz do jogo
+int cursor_x = 0, cursor_y = 0; // Posição do cursor no tabuleiro
+char current_player = 'X'; // Jogador atual
+bool game_over = false; // Indica se o jogo terminou
 
+// Função para desenhar o tabuleiro no display
 void draw_board() {
-    ssd1306_fill(&ssd, false);
+    ssd1306_fill(&ssd, false); // Limpa o display
 
     // Desenha as linhas do tabuleiro
     for (int i = 1; i < 3; i++) {
@@ -59,20 +63,20 @@ void draw_board() {
     // Desenha o cursor
     ssd1306_rect(&ssd, cursor_x * 20 + 2, cursor_y * 40 + 2, 36, 16, true, false);
 
-    ssd1306_send_data(&ssd);
+    ssd1306_send_data(&ssd); // Envia os dados para o display
 }
 
-// Função para os leds da matriz
+// Função para enviar um pixel para a matriz de LEDs
 static inline void put_pixel(uint32_t pixel_grb) {
     pio_sm_put_blocking(pio0, 0, pixel_grb << 8u);
 }
 
-// Função para os leds da matriz
+// Função para converter RGB em um valor de 32 bits
 static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)(r) << 8) | ((uint32_t)(g) << 16) | (uint32_t)(b);
 }
 
-// Matriz de leds
+// Matriz de LEDs para representar os símbolos do jogo
 const bool matriz_led[NUM_PLAYERS][NUM_PIXELS] = {
     {1,0,0,0,1, 0,1,0,1,0, 0,0,1,0,0, 0,1,0,1,0, 1,0,0,0,1}, // X
     {0,1,1,1,0, 1,0,0,0,1, 1,0,0,0,1, 1,0,0,0,1, 0,1,1,1,0}, // O
@@ -80,7 +84,7 @@ const bool matriz_led[NUM_PLAYERS][NUM_PIXELS] = {
     {0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0}  // Matriz vazia
 };
 
-// Função para desenhar um símbolo na matriz
+// Função para exibir um símbolo na matriz de LEDs
 void show_symbol_leds(int symbol, uint32_t color) {
     int i;
 
@@ -103,6 +107,7 @@ void play_sound(int frequency, int duration_ms) {
     }
 }
 
+// Função para verificar se há um vencedor
 char check_winner() {
     // Verifica linhas
     for (int y = 0; y < 3; y++) {
@@ -141,6 +146,7 @@ bool check_draw() {
     return true; // Todos os espaços estão preenchidos, o jogo empatou
 }
 
+// Função de interrupção para os botões
 void gpio_irq_handler(uint gpio, uint32_t events) {
     uint32_t current_time = to_us_since_boot(get_absolute_time());
     if (gpio == BUTTON_A && current_time - LAST_TIME_A > 200000) {
@@ -152,6 +158,7 @@ void gpio_irq_handler(uint gpio, uint32_t events) {
     }
 }
 
+// Função para reiniciar o jogo
 void reset_game() {
     // Limpa o tabuleiro
     for (int y = 0; y < 3; y++) {
@@ -181,6 +188,7 @@ void reset_game() {
     printf("Jogo reiniciado! Bom jogo!\n");
 }
 
+// Função para atualizar o estado do jogo
 void update_game() {
     if (game_over) {
         // Verifica se o botão A foi pressionado duas vezes para reiniciar
@@ -195,6 +203,7 @@ void update_game() {
         return; // Se o jogo terminou, não faz nada além de verificar o reinício
     }
 
+    // Insere o símbolo do jogador atual na matriz ao pressionar o botão A
     if (button_a_pressed) {
         button_a_pressed = false;
         if (board[cursor_y][cursor_x] == ' ') {
@@ -212,11 +221,11 @@ void update_game() {
                 if (winner == 'X') {
                     gpio_put(BLUE_LED, true); // Acende o LED azul para indicar vitória do X
                     show_symbol_leds(0, urgb_u32(0, 0, 200)); // Exibe "X" na matriz de LEDs (azul)
-                    play_sound(1000, 600); // Toca um som agudo para vitória do X
+                    play_sound(1000, 600); // Toca o som da vitória do X
                 } else if (winner == 'O') {
                     gpio_put(GREEN_LED, true); // Acende o LED verde para indicar vitória do O
                     show_symbol_leds(1, urgb_u32(0, 200, 0)); // Exibe "O" na matriz de LEDs (verde)
-                    play_sound(700, 600); // Toca um som grave para vitória do O
+                    play_sound(700, 600); // Toca o som da vitória do O
                 }
                 return;
             }
@@ -228,7 +237,7 @@ void update_game() {
                 printf("Pressione o botão A duas vezes para reiniciar o jogo.\n"); // Instrução para reiniciar
                 gpio_put(RED_LED, true); // Acende o LED vermelho para indicar empate
                 show_symbol_leds(2, urgb_u32(200, 0, 0)); // Exibe "V" na matriz de LEDs (vermelho)
-                play_sound(500, 600); // Toca um som intermediário para empate
+                play_sound(500, 600); // Toca o som do empate
                 return;
             }
 
@@ -238,6 +247,8 @@ void update_game() {
             } else {
                 current_player = 'X';
             }
+        
+        // Caso o jogador tente usar um espaço já ocupado
         } else {
             gpio_put(RED_LED, true);
             printf("Posição já em uso, selecione outra.\n");
@@ -246,6 +257,8 @@ void update_game() {
             gpio_put(RED_LED, false);
         }
     }
+
+    // Se locomove por entre as células da matriz ao pressionar o botão B
     if (button_b_pressed) {
         button_b_pressed = false;
         cursor_x = (cursor_x + 1) % 3; // Move horizontalmente
@@ -273,6 +286,7 @@ void init_buzzer() {
     gpio_set_dir(BUZZER_PIN, GPIO_OUT);
 }
 
+// Função principal
 int main() {
     PIO pio = pio0;
     int sm = 0;
@@ -287,20 +301,23 @@ int main() {
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
     gpio_pull_up(I2C_SCL);
-    ssd1306_init(&ssd, SCREEN_WIDTH, SCREEN_HEIGHT, false, endereco, I2C_PORT);
+    ssd1306_init(&ssd, SCREEN_WIDTH, SCREEN_HEIGHT, false, endereco, I2C_PORT);  // Inicializa o display
     ssd1306_config(&ssd);
     ssd1306_send_data(&ssd);
 
+    // Inicializa o botão A
     gpio_init(BUTTON_A);
     gpio_set_dir(BUTTON_A, GPIO_IN);
     gpio_pull_up(BUTTON_A);
     gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
+    // Inicializa o botão B
     gpio_init(BUTTON_B);
     gpio_set_dir(BUTTON_B, GPIO_IN);
     gpio_pull_up(BUTTON_B);
     gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
+    // Desenha o tabuleiro e atualiza a cada interação dos jogadores com a placa
     draw_board();
     while (true) {
         update_game();
