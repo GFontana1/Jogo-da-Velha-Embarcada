@@ -241,8 +241,8 @@ void update_game() {
         } else {
             gpio_put(RED_LED, true);
             printf("Posição já em uso, selecione outra.\n");
-            play_sound(150, 300);
-            sleep_ms(700);
+            play_sound(200, 300);
+            sleep_ms(500);
             gpio_put(RED_LED, false);
         }
     }
@@ -257,6 +257,7 @@ void update_game() {
     draw_board();
 }
 
+// Função para inicializar os LEDs
 void init_leds() {
     gpio_init(BLUE_LED);
     gpio_set_dir(BLUE_LED, GPIO_OUT);
@@ -266,6 +267,7 @@ void init_leds() {
     gpio_set_dir(RED_LED, GPIO_OUT);
 }
 
+// Função para inicializar o buzzer
 void init_buzzer() {
     gpio_init(BUZZER_PIN);
     gpio_set_dir(BUZZER_PIN, GPIO_OUT);
@@ -279,7 +281,7 @@ int main() {
     ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW); // Inicializa a máquina de estados
     stdio_init_all();
     init_leds();
-    init_buzzer(); // Inicializa o buzzer
+    init_buzzer();
     i2c_init(I2C_PORT, 400 * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
